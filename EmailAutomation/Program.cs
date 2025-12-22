@@ -55,7 +55,7 @@ namespace EmailAutomation
     {
         static void Main(string[] args)
         {
-            // --- STEP 1: LOAD CONFIG ---
+            // --- LOAD CONFIG ---
             string configPath = "config.json";
             if (!File.Exists(configPath))
             {
@@ -72,8 +72,7 @@ namespace EmailAutomation
             //     return;
             // }
 
-            // --- STEP 2: LOAD TEMPLATES INTO MEMORY ---
-            // We read these once so we don't hit the disk 500 times.
+            // --- LOAD TEMPLATES ---
             Dictionary<string, string> templates = new Dictionary<string, string>();
 
             if (!TryLoadFile(config.InfluencerHtmlTemplate, out string influencerHtml)) return;
@@ -81,14 +80,14 @@ namespace EmailAutomation
             if (!TryLoadFile(config.InfluencerTextTemplate, out string influencerText)) return;
             if (!TryLoadFile(config.DeveloperTextTemplate, out string developerText)) return;
             
-            // Extract Subjects (New Logic)
+            // Extract Subjects
             string influencerSubject = ExtractTitle(influencerHtml) ?? config.DefaultSubject;
             string developerSubject = ExtractTitle(developerHtml) ?? config.DefaultSubject;
 
             Console.WriteLine($"Influencer Subject: {influencerSubject}");
             Console.WriteLine($"Developer Subject: {developerSubject}");
 
-            // --- STEP 3: PARSE CSV ---
+            // --- PARSE CSV ---
             if (!File.Exists(config.CsvDataFile))
             {
                 Console.WriteLine($"Error: CSV file '{config.CsvDataFile}' not found.");
@@ -98,8 +97,7 @@ namespace EmailAutomation
             // Get all contacts from CSV
             List<ContactRow> allContacts = ParseCsv(config.CsvDataFile);
             
-            // Filter: Only keep rows where Sent is FALSE (or empty)
-            // We use ToUpper() to make it case-insensitive (False, false, FALSE all work)
+            // Filter out sent item - only keep rows where Sent is FALSE (or empty)
             List<ContactRow> contacts = allContacts
                 .Where(c => c.Sent.ToUpper() == "FALSE") 
                 .ToList();
@@ -120,9 +118,8 @@ namespace EmailAutomation
             Console.WriteLine("========================================");
             Console.WriteLine("");
             
-            // ---------------------------------------------------------
+            
             // DATA PREVIEW
-            // ---------------------------------------------------------
             Console.WriteLine("====================================================================================================");
             Console.WriteLine($"{"SENT",-5} | {"STATUS",-12} | {"NAME",-25} | {"EMAIL",-30} | {"KEY PREVIEW",-20}");
             Console.WriteLine("====================================================================================================");
@@ -130,7 +127,7 @@ namespace EmailAutomation
             int index = 1;
             foreach (var c in contacts)
             {
-                // Truncate long strings for display cleanly
+                // Truncate long strings to display cleanly
                 string sent = c.Sent.Length > 5 ? c.Sent.Substring(0, 5) + ".." : c.Sent;
                 string name = c.ChannelName.Length > 22 ? c.ChannelName.Substring(0, 22) + ".." : c.ChannelName;
                 string email = c.Email.Length > 28 ? c.Email.Substring(0, 28) + ".." : c.Email;
@@ -149,7 +146,7 @@ namespace EmailAutomation
 
             Console.Write("\nReady to send? Press 'Y' to Proceed, or any other key to Abort: ");
             var key = Console.ReadKey();
-            Console.WriteLine(); // New line for formatting
+            Console.WriteLine();
 
             if (key.Key != ConsoleKey.Y)
             {
@@ -159,7 +156,7 @@ namespace EmailAutomation
             
             // ---------------------------------------------------------
 
-            // --- STEP 4: SENDING LOOP ---
+            // --- SENDING LOOP ---
             using (var client = new SmtpClient())
             {
                 try
@@ -189,11 +186,11 @@ namespace EmailAutomation
 
                         var builder = new BodyBuilder();
                         
-                        // // 1. Attach the image as a "Linked Resource" (Inline)
+                        // // Attach the image as a "Linked Resource" (Inline)
                         // // This loads the file and creates a random Content-ID (e.g. "image1@xyz")
                         // var imageAttachment = builder.LinkedResources.Add(config.LogoFilePath);
                         //
-                        // // 2. Construct the "src" attribute
+                        // // Construct the "src" attribute
                         // string imageCidSrc = $"cid:{imageAttachment.ContentId}";
 
                         // Perform Replacements
@@ -263,8 +260,7 @@ namespace EmailAutomation
             return true;
         }
 
-        // Robust CSV Parser (No 3rd party packages)
-        // Handles header mapping dynamically
+        // CSV Parser - handles header mapping dynamically
         static List<ContactRow> ParseCsv(string filePath)
         {
             var results = new List<ContactRow>();
@@ -296,8 +292,7 @@ namespace EmailAutomation
             }
 
             // 2. Parse Rows with Regex
-            // This pattern finds commas that are NOT inside quotes
-            var csvSplitter = new Regex(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+            var csvSplitter = new Regex(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"); // This pattern finds commas that are NOT inside quotes
 
             for (int i = 1; i < lines.Length; i++)
             {
