@@ -1,0 +1,23 @@
+﻿# --- USER DATA & SECRETS (Do not commit) ---
+config.json
+*.csv
+*.html
+*.txt
+
+# --- IMAGES/LOGOS ---
+*.png
+*.jpg
+*.jpeg
+
+# --- BUILD FOLDERS (Standard C#) ---
+[Bb]in/
+[Oo]bj/
+.vs/
+
+# --- JETBRAINS RIDER ---
+.idea/
+*.sln.DotSettings.user
+
+# --- OS GENERATED FILES ---
+.DS_Store
+Thumbs.db

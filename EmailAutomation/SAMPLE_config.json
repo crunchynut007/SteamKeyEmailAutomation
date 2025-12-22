@@ -1,0 +1,14 @@
+﻿{
+  "CsvDataFile": "yourContacts.csv",
+  "InfluencerHtmlTemplate": "template_influencer.html",
+  "DeveloperHtmlTemplate": "template_developer.html",
+  "InfluencerTextTemplate": "body_influencer.txt",
+  "DeveloperTextTemplate": "body_developer.txt",
+  "SmtpServer": "smtp.gmail.com",
+  "SmtpPort": 587,
+  "SenderEmail": "YourEmailAddress@gmail.com",
+  "SenderName": "YourStudioName",
+  "AppPassword": "xxxx xxxx xxxx xxxx",
+  "DelayMs": 1500,
+  "DefaultSubject": "placeholder subject line if html has no title"
+}
