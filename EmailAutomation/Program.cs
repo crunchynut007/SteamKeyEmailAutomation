@@ -13,10 +13,10 @@ namespace EmailAutomation
         public string CsvDataFile { get; set; }
 
         // Game info — drives all template tokens automatically
-        public string SteamAppId                { get; set; }  // e.g. "4453320"
-        public string GameTitle                 { get; set; }  // e.g. "Laballatory"
+        public string SteamAppId                { get; set; }  // e.g. "1234567890"
+        public string GameTitle                 { get; set; }  // e.g. "AwesomeGame"
         public string GameReleaseDate           { get; set; }  // e.g. "Q3 2026"
-        public string GameGenre                 { get; set; }  // e.g. "Incremental, Puzzle"
+        public string GameGenre                 { get; set; }  // e.g. "Action, Puzzle"
         public string GameShortDescription      { get; set; }  // one-liner shown in email body
         public string SteamGameImageUrl         { get; set; }  // header / capsule image src
         public string YoutubeGameplayTrailerUrl { get; set; }  // YouTube trailer link
@@ -260,11 +260,12 @@ namespace EmailAutomation
                     // Apply all tokens to the full template
                     string finalHtml = ApplyTokens(baseHtml, contact, config, storeUrl, keyHtmlSection);
                     string finalText = ApplyTokens(baseText, contact, config, storeUrl, keyTextSection);
+                    string finalSubject = ApplyTokens(subject, contact, config, storeUrl, keyHtmlSection);
 
                     var message = new MimeMessage();
                     message.From.Add(new MailboxAddress(config.SenderName, config.SenderEmail));
                     message.To.Add(new MailboxAddress(contact.ChannelName, contact.Email));
-                    message.Subject = subject;
+                    message.Subject = finalSubject;
                     message.Body = new BodyBuilder { HtmlBody = finalHtml, TextBody = finalText }.ToMessageBody();
 
                     try
