@@ -1,164 +1,247 @@
-﻿# Steam Key Email Automation
+﻿# Game Press Email Automation
 
-A dirty C# Console Application designed for game developers to batch-send unique Steam keys to influencers and press.
+A filthy C# Console Application designed for indie game developers to batch-send press and influencer outreach emails — with or without Steam keys — to a recipient list sourced from a CSV file.
 
 ## Features
-* **Safety First:** Pre-flight checks, data preview tables, and "Proceed/Abort" prompts.
-* **Resume Capability:** Automatically filters CSV data to only send to rows marked `FALSE` in the "Sent" column.
-* **Smart Parsing:** Handles complex CSV data (including commas inside quoted strings).
-* **Rich HTML:** Supports beautiful HTML templates with CSS styling and automatic fallback to plain text.
-* **Embedded Assets:** Supports inline logo attachments (no external image hosting required).
-* **Subject Line Extraction:** Reads the email subject directly from the HTML `<title>` tag.
+
+- **Three Email Types:** Tailored templates for `influencer`, `outlet` (gaming press), and `unspecified` contacts, selected per-row from the CSV.
+- **Conditional Steam Key Injection:** A `ShouldSendKey` column in the CSV controls whether the key box and redeem button are injected into the email — no separate send runs needed.
+- **Named Token System:** Templates use readable named tokens like `{GAME_TITLE}` and `{PRESSKIT_URL}` rather than positional placeholders.
+- **Game Info in Config:** All game details (title, genre, description, store URL, trailer, press kit) live in `config.json` — update once, reflected everywhere.
+- **Safety First:** Pre-flight checks, a data preview table, and a Proceed/Abort confirmation prompt before any email is sent.
+- **Resume Capability:** Rows marked `TRUE` in the `Sent` column are automatically skipped, so interrupted runs can be safely re-run.
+- **Smart CSV Parsing:** Handles commas inside quoted fields without shifting columns.
+- **Subject Line Extraction:** Reads the email subject directly from the HTML `<title>` tag.
+- **Plain Text Fallback:** Every HTML template has a matching `.txt` file for clients that can't render HTML.
 
 ---
 
 ## Prerequisites
 
-1.  **IDE:** [JetBrains Rider](https://www.jetbrains.com/rider/) (Recommended) or Visual Studio/Code.
-2.  **.NET SDK:** .NET 6.0 or higher.
-3.  **Gmail Account:**
-    * You must enable **2-Factor Authentication**.
-    * You must generate an **App Password** (Use this instead of your real password).
-    * *Guide: [Sign in with App Passwords](https://support.google.com/accounts/answer/185833)*
+1. **IDE:** [JetBrains Rider](https://www.jetbrains.com/rider/) (Recommended) or Visual Studio / VS Code.
+2. **.NET SDK:** .NET 6.0 or higher.
+3. **Gmail Account:**
+    - Enable **2-Factor Authentication**.
+    - Generate an **App Password** — use this instead of your real password.
+    - Guide: [Sign in with App Passwords](https://support.google.com/accounts/answer/185833)
 
 ---
 
 ## Installation
 
-1.  **Clone the Repository**
-    ```bash
-    git clone [https://github.com/YourUsername/SteamKeyMailer.git](https://github.com/YourUsername/SteamKeyMailer.git)
-    cd SteamKeyMailer
-    ```
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/YourUsername/GamePressMailer.git
+   cd GamePressMailer
+   ```
 
-2.  **Restore Dependencies**
-    The project uses `MailKit` and `MimeKit`. Restore them via your IDE or terminal:
-    ```bash
-    dotnet restore
-    ```
+2. **Restore Dependencies**
+   The project uses `MailKit` and `MimeKit`. Restore via your IDE or terminal:
+   ```bash
+   dotnet restore
+   ```
 
 ---
 
 ## Configuration
 
-**Note:** For security reasons, configuration files and user data are ignored by Git. You must create them manually.
+> **Note:** `config.json` and `contacts.csv` are excluded from Git for security. Create them manually using the samples below as a guide.
 
-### The Config File
-Create a file named `config.json` in the project root (next to `Program.cs`).
+### `config.json`
+
+Create `config.json` in the project root (next to `Program.cs`):
 
 ```json
 {
   "CsvDataFile": "contacts.csv",
-  
-  "InfluencerHtmlTemplate": "Templates/template_inf.html",
-  "DeveloperHtmlTemplate": "Templates/template_dev.html",
-  
-  "InfluencerTextTemplate": "Templates/body_inf.txt",
-  "DeveloperTextTemplate": "Templates/body_dev.txt",
 
-  "SmtpServer": "smtp.gmail.com",
-  "SmtpPort": 587,
+  "SteamAppId":                "4453320",
+  "GameTitle":                 "AwesomeGame",
+  "GameReleaseDate":           "Q3 2056",
+  "GameGenre":                 "Action, Adventure, Platformer",
+  "GameShortDescription":      "A casual sci-fi sandbox...",
+  "SteamGameImageUrl":         "https://shared.fastly.steamstatic.com/...",
+  "YoutubeGameplayTrailerUrl": "https://youtu.be/yourTrailerId",
+  "GoogleDrivePressKitUrl":    "https://drive.google.com/drive/folders/yourFolderId",
+
+  "DefaultSubject": "Check out our latest game!",
+
+  "InfluencerHtmlTemplate":  "template_influencer.html",
+  "DeveloperHtmlTemplate":   "template_outlet.html",
+  "UnspecifiedHtmlTemplate": "template_unspecified.html",
+
+  "InfluencerTextTemplate":  "body_influencer.txt",
+  "DeveloperTextTemplate":   "body_outlet.txt",
+  "UnspecifiedTextTemplate": "body_unspecified.txt",
+
+  "SteamKeyHtmlPartial": "partial_steamkey.html",
+  "SteamKeyTextPartial": "partial_steamkey.txt",
+
+  "SmtpServer":  "smtp.gmail.com",
+  "SmtpPort":    587,
   "SenderEmail": "your.email@gmail.com",
-  "SenderName": "Your Studio Name",
-  "AppPassword": "xxxx xxxx xxxx xxxx", 
-  "DelayMs": 1500,
-  "DefaultSubject": "Game Key for Review"
+  "SenderName":  "Your Studio Name",
+  "AppPassword": "xxxx xxxx xxxx xxxx",
+  "DelayMs":     1500
 }
 ```
-- AppPassword: The 16-character code from Google (spaces are allowed).
-- DelayMs: Time to wait between emails to avoid spam filters (1500ms recommended).
 
+#### Field Reference
 
-### The Data File
-Create a CSV file named `contacts.csv` in the project root. It should look like this:
-
-```
-Sent,Status,ChannelName,ContactEmail,SteamKeys
-FALSE,Influencer,BestGamer,bg@example.com,AAAAA-BBBBB-CCCCC
-FALSE,Developer,IndieDev,dev@example.com,11111-22222-33333
-TRUE,Influencer,OldContact,old@example.com,ALREADY-SENT-CODE
-```
-- Sent: Must be FALSE to be processed. If TRUE, the row is skipped.
-- Status: If set to Developer, the tool uses the Developer templates. Otherwise, it uses Influencer templates.
+| Field | Description |
+|---|---|
+| `CsvDataFile` | Path to your contacts CSV file |
+| `SteamAppId` | Your Steam App ID — used to build the store URL automatically |
+| `GameTitle` | Game name — injected via `{GAME_TITLE}` |
+| `GameReleaseDate` | Release window — injected via `{GAME_RELEASE_DATE}` |
+| `GameGenre` | Genre string — injected via `{GAME_GENRE}` |
+| `GameShortDescription` | One-liner description — injected via `{GAME_SHORT_DESCRIPTION}` |
+| `SteamGameImageUrl` | Header/capsule image URL — injected via `{GAME_IMAGE_URL}` |
+| `YoutubeGameplayTrailerUrl` | Trailer link — injected via `{TRAILER_URL}` |
+| `GoogleDrivePressKitUrl` | Press kit folder link — injected via `{PRESSKIT_URL}` |
+| `DefaultSubject` | Fallback subject if the HTML `<title>` tag is missing |
+| `InfluencerHtmlTemplate` | HTML template path for `influencer` contacts |
+| `DeveloperHtmlTemplate` | HTML template path for `outlet` contacts |
+| `UnspecifiedHtmlTemplate` | HTML template path for `unspecified` contacts |
+| `InfluencerTextTemplate` | Plain-text fallback for `influencer` contacts |
+| `DeveloperTextTemplate` | Plain-text fallback for `outlet` contacts |
+| `UnspecifiedTextTemplate` | Plain-text fallback for `unspecified` contacts |
+| `SteamKeyHtmlPartial` | HTML snippet injected when `ShouldSendKey` is `TRUE` |
+| `SteamKeyTextPartial` | Plain-text snippet injected when `ShouldSendKey` is `TRUE` |
+| `AppPassword` | 16-character Google App Password (spaces are fine) |
+| `DelayMs` | Milliseconds between emails — `1500` recommended to avoid spam filters |
 
 ---
 
-## Creating Templates
+### `contacts.csv`
 
-### HTML Templates
-The tool automatically extracts the Email Subject from the `<title>` tag.
+Create `contacts.csv` in the project root. The column order doesn't matter — headers are mapped by name.
 
+```
+Sent,ShouldSendKey,SteamKeys,ChannelName,Status,ChannelFocus,ContactEmail,Notes
+FALSE,TRUE,AAAAA-BBBBB-CCCCC,BestGamer,influencer,Gaming,bg@example.com,Loves platformers
+FALSE,FALSE,,AnotherCreator,influencer,Variety,creator@example.com,
+FALSE,TRUE,11111-22222-33333,IndieDev Monthly,outlet,Press,press@indiedev.com,
+FALSE,FALSE,,GameReviewSite,outlet,Press,reviews@site.com,
+FALSE,TRUE,DDDDD-EEEEE-FFFFF,MysteryContact,unspecified,,mystery@example.com,
+TRUE,TRUE,ALREADY-SENT,OldContact,influencer,Gaming,old@example.com,Already handled
+```
 
-### Supported Placeholders:
+#### Column Reference
 
-- `{0}` : Insert Steam Key
+| Column | Required | Description |
+|---|---|---|
+| `Sent` | Yes | `FALSE` = will be sent. `TRUE` = skipped. |
+| `ShouldSendKey` | Yes | `TRUE` = inject the Steam key section. `FALSE` = send without it. |
+| `SteamKeys` | Conditional | Required when `ShouldSendKey` is `TRUE`. Rows with `ShouldSendKey=TRUE` but an empty `SteamKeys` are warned about and skipped. |
+| `ChannelName` | No | Display name used in the email greeting. Defaults to `"Creator"` if missing. |
+| `Status` | No | `influencer`, `outlet`, or `unspecified`. Determines which template set is used. Defaults to `influencer`. |
+| `ChannelFocus` | — | Ignored by the tool. For your own reference. |
+| `ContactEmail` | Yes | The recipient's email address. |
+| `Notes` | — | Ignored by the tool. For your own reference. |
 
-- `{1}` : Insert Channel Name
+---
 
-- `{2}` : Insert Logo (src attribute) (Feature disabled - uncomment and add the logo image path to config)
+## Templates
 
-#### Example (`template_inf.html`):
+All templates live alongside `Program.cs` (or wherever you point the config). Every file must be set to **Copy to Output Directory** in Rider (`Right-click → Properties → Copy to Output Directory → Copy if Newer`).
+
+### File Overview
+
+| File | Purpose |
+|---|---|
+| `template_influencer.html` | HTML email for influencer contacts |
+| `template_outlet.html` | HTML email for gaming press / outlet contacts |
+| `template_unspecified.html` | HTML email for contacts with no specific type |
+| `body_influencer.txt` | Plain-text fallback for influencer contacts |
+| `body_outlet.txt` | Plain-text fallback for outlet contacts |
+| `body_unspecified.txt` | Plain-text fallback for unspecified contacts |
+| `partial_steamkey.html` | HTML key box + redeem button — injected when `ShouldSendKey=TRUE` |
+| `partial_steamkey.txt` | Plain-text key block — injected when `ShouldSendKey=TRUE` |
+
+### Token Reference
+
+Use these named tokens anywhere in your templates or partial files:
+
+| Token | Value |
+|---|---|
+| `{CHANNEL_NAME}` | Contact's channel / display name |
+| `{GAME_TITLE}` | `config.GameTitle` |
+| `{GAME_RELEASE_DATE}` | `config.GameReleaseDate` |
+| `{GAME_GENRE}` | `config.GameGenre` |
+| `{GAME_SHORT_DESCRIPTION}` | `config.GameShortDescription` |
+| `{GAME_IMAGE_URL}` | `config.SteamGameImageUrl` |
+| `{STORE_URL}` | Built from `config.SteamAppId` → `https://store.steampowered.com/app/{SteamAppId}` |
+| `{TRAILER_URL}` | `config.YoutubeGameplayTrailerUrl` |
+| `{PRESSKIT_URL}` | `config.GoogleDrivePressKitUrl` |
+| `{STEAM_KEY_SECTION}` | Replaced with the compiled partial, or an empty string if `ShouldSendKey=FALSE` |
+
+The following tokens are only available **inside the partial files** (`partial_steamkey.html` / `.txt`):
+
+| Token | Value |
+|---|---|
+| `{STEAM_KEY}` | The raw Steam key value from the CSV |
+| `{STORE_URL}` | Same store URL — used to build the deep-link redeem button |
+
+### Subject Line
+
+The email subject is extracted automatically from the HTML `<title>` tag of each template:
+
 ```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Exclusive Key for {1}!</title>
-</head>
-<body style="background-color: #171a21; color: white;">
-    <div style="text-align: center;">
-        <img src="{2}" alt="Logo" width="200">
-    </div>
-
-    <h1>Hello {1}!</h1>
-    <p>Here is your key:</p>
-    <div style="background: black; padding: 10px; font-family: monospace;">
-        {0}
-    </div>
-</body>
-</html>
+<title>[{GAME_TITLE}] Check out our new upcoming game!</title>
 ```
 
-### Text Templates
-
-Used as a fallback for strict spam filters or text-only clients.
-
-#### Example (`body_inf.txt`):
-
-```text
-Hello {1}!
-
-Here is your Steam key for review: {0}
-
-Cheers,
-Dev Team
-```
+If the `<title>` tag is missing, `config.DefaultSubject` is used as a fallback.
 
 ---
 
 ## Execution
 
-Build and run Project: 
-- Ensure all your created files (config.json, contacts.csv, templates, and logo.png) are set to "Copy to Output Directory" in your IDE properties.
-  - Rider: Right-click file → Properties → Copy to Output Directory → Copy if Newer.
+### The Workflow
 
-### The Workflow:
+1. The app loads and validates `config.json`.
+2. All six templates and both partial files are loaded.
+3. The CSV is parsed and filtered — only rows with `Sent=FALSE` are considered.
+4. Rows with `ShouldSendKey=TRUE` but an empty `SteamKeys` value are flagged as warnings and excluded.
+5. A preview table is displayed showing every contact that will receive an email, their type, and whether a key is included.
+6. You are prompted to press `Y` to proceed or any other key to abort.
+7. The app connects to SMTP and sends emails one by one, with a configurable delay between each.
 
-1. The app loads the config and parses the CSV.
-2. It filters out any rows where Sent is not FALSE.
-3. It displays a Verification Table showing who will receive an email.
-4. It asks for confirmation (Press Y to proceed).
-5. It connects to SMTP and sends emails one by one with a delay.
+### Preview Table
+
+Before sending, the app prints a table like this:
+
+```
+==========================================================================
+SENT  | TYPE         | HAS KEY | NAME                   | EMAIL                          | KEY PREVIEW
+==========================================================================
+FALSE | Influencer   | YES     | BestGamer              | bg@example.com                 | AAAAA-BBBBB-CCCCC
+FALSE | Influencer   | NO      | AnotherCreator         | creator@example.com            | -
+FALSE | Outlet       | YES     | IndieDev Monthly       | press@indiedev.com             | 11111-22222-333..
+==========================================================================
+```
 
 ---
 
 ## Troubleshooting
 
-- Error: "Input string was not in a correct format"
-  - Cause: You likely have CSS braces { } in your HTML template.
-  - Fix: The code handles this safely using .Replace(), but ensure you aren't using other C# formatting methods.
-- Error: CSV parsing is shifting columns
-  - Cause: Your CSV data contains commas (e.g., "Action, RPG").
-  - Fix: Ensure your CSV values are wrapped in quotes: "Action, RPG". The tool's built-in Regex parser handles this automatically.
-- Error: SMTP Authentication Failed
-  - Cause: You are using your real Google password.
-  - Fix: You must use an App Password generated from the Google Security dashboard.
+**Error: CSV parsing is shifting columns**
+- Cause: A CSV field contains a comma (e.g., a genre like `Incremental, Puzzle`).
+- Fix: Wrap the value in double quotes in the CSV: `"Incremental, Puzzle"`. The built-in Regex parser handles this automatically.
+
+**Warning: Row skipped due to missing Steam key**
+- Cause: A row has `ShouldSendKey=TRUE` but the `SteamKeys` column is empty.
+- Fix: Add the Steam key to that row in your CSV, or set `ShouldSendKey=FALSE` if you don't intend to send one.
+
+**Error: SMTP Authentication Failed**
+- Cause: You are using your real Google account password.
+- Fix: Generate an **App Password** from Google Account → Security → App Passwords, and use that 16-character code in `config.AppPassword`.
+
+**Error: File '...' not found**
+- Cause: A template or partial file path in `config.json` is wrong, or the file isn't set to copy to the output directory.
+- Fix: Check that all file paths in `config.json` are correct and that each file is set to *Copy to Output Directory* in Rider.
+
+**Emails land in spam**
+- Increase `DelayMs` (try `2000` or higher).
+- Ensure your Gmail account is warmed up and not sending from a brand-new address.
+- Avoid spam trigger words in your subject line.
