@@ -1,4 +1,4 @@
-﻿# Steam Key Email Automation
+# Steam Key Email Automation
 
 A dirty C# Console Application designed for game developers to batch-send unique Steam keys to influencers and press.
 
