@@ -244,4 +244,4 @@ FALSE | Outlet       | YES     | IndieDev Monthly       | press@indiedev.com    
 **Emails land in spam**
 - Increase `DelayMs` (try `2000` or higher).
 - Ensure your Gmail account is warmed up and not sending from a brand-new address.
-- Avoid spam trigger words in your subject line.
+- Avoid spam trigger words in your subject line. 
